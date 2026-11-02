@@ -7,23 +7,33 @@ dotenv.config();
 
 const app = express();
 
-// 1. Middlewares
-app.use(cors());
+// 1. Middlewares & Explicit CORS Configuration for Localtunnel
+app.use(cors({
+  origin: '*', // Allows requests from any origin (including localhost and Localtunnel)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'bypass-tunnel-reminder']
+}));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
+
 app.use(express.json());
 
 // 2. Import & Mount Routes
 const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
+const habitRoutes = require('./routes/habitRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/habits', habitRoutes);
 
-// 3. 404 Unhandled Route Handler (Optional, catches undefined routes)
+// 3. 404 Unhandled Route Handler
 app.use((req, res, next) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// 4. GLOBAL ERROR HANDLER (MUST BE HERE - After routes, before app.listen)
+// 4. GLOBAL ERROR HANDLER
 app.use((err, req, res, next) => {
   console.error(err.stack);
   

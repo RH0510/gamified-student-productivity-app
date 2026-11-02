@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { HabitTracker } from './components/HabitTracker';
 
 function App() {
   const [isLogin, setIsLogin] = useState(false);
@@ -102,7 +103,12 @@ function App() {
       setTasks(tasks.map(t => t._id === taskId ? res.data.task : t));
 
       if (user) {
-        setUser({ ...user, xp: res.data.user.xp, level: res.data.user.level });
+        setUser({ 
+          ...user, 
+          xp: res.data.user.xp, 
+          level: res.data.user.level, 
+          streak: res.data.user.streak 
+        });
       }
 
       if (res.data.leveledUp) {
@@ -198,12 +204,14 @@ function App() {
         </div>
       ) : (
         <div>
-          {/* User Banner */}
+          {/* User Banner & Streak Counter */}
           <div style={{ background: '#1e293b', color: '#fff', padding: '1.5rem', borderRadius: '12px', marginBottom: '1.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Welcome back, {user?.username || 'Hero'}! ⭐</h2>
-                <p style={{ margin: '0.4rem 0 0', color: '#94a3b8' }}>Level {currentLevel} Adventurer</p>
+                <p style={{ margin: '0.4rem 0 0', color: '#94a3b8' }}>
+                  Level {currentLevel} Adventurer &nbsp;|&nbsp; 🔥 Streak: {user?.streak || 0} Days
+                </p>
               </div>
               <button onClick={handleLogout} style={{ background: '#334155', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer' }}>
                 Logout
@@ -368,6 +376,8 @@ function App() {
               })}
             </ul>
           )}
+
+          <HabitTracker />
         </div>
       )}
 

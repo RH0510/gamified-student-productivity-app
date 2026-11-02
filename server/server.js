@@ -22,9 +22,11 @@ app.use(express.json());
 // 2. Import & Mount Routes
 const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
+const habitRoutes = require('./routes/habitRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/habits', habitRoutes);
 
 // 3. 404 Unhandled Route Handler
 app.use((req, res, next) => {

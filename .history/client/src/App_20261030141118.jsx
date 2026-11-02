@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { HabitTracker } from './components/HabitTracker';
 
 function App() {
   const [isLogin, setIsLogin] = useState(false);
@@ -15,6 +16,11 @@ function App() {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
   const [taskXp, setTaskXp] = useState(10);
+  const [taskPriority, setTaskPriority] = useState('Medium');
+  const [taskCategory, setTaskCategory] = useState('Academic');
+  
+  // Filter State
+  const [filterCategory, setFilterCategory] = useState('All');
 
   useEffect(() => {
     if (token) {
@@ -66,13 +72,21 @@ function App() {
     try {
       const res = await axios.post(
         'http://localhost:5000/api/tasks',
-        { title: taskTitle, description: taskDesc, xpReward: Number(taskXp) },
+        { 
+          title: taskTitle, 
+          description: taskDesc, 
+          xpReward: Number(taskXp),
+          priority: taskPriority,
+          category: taskCategory
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setTasks([res.data, ...tasks]);
       setTaskTitle('');
       setTaskDesc('');
       setTaskXp(10);
+      setTaskPriority('Medium');
+      setTaskCategory('Academic');
     } catch (err) {
       setMessage('Failed to create task');
     }
@@ -89,7 +103,12 @@ function App() {
       setTasks(tasks.map(t => t._id === taskId ? res.data.task : t));
 
       if (user) {
-        setUser({ ...user, xp: res.data.user.xp, level: res.data.user.level });
+        setUser({ 
+          ...user, 
+          xp: res.data.user.xp, 
+          level: res.data.user.level, 
+          streak: res.data.user.streak 
+        });
       }
 
       if (res.data.leveledUp) {
@@ -119,15 +138,20 @@ function App() {
     setMessage('Logged out successfully.');
   };
 
-  // Calculations for Level Progress Bar (100 XP per level)
+  // Level Progress Calculations (100 XP per level threshold)
   const currentXp = user?.xp || 0;
   const currentLevel = user?.level || 1;
   const xpForNextLevel = 100;
   const xpInCurrentLevel = currentXp % xpForNextLevel;
   const progressPercent = Math.min((xpInCurrentLevel / xpForNextLevel) * 100, 100);
 
+  // Filtered Tasks
+  const filteredTasks = filterCategory === 'All' 
+    ? tasks 
+    : tasks.filter(t => t.category === filterCategory);
+
   return (
-    <div style={{ maxWidth: '650px', margin: '2rem auto', fontFamily: 'system-ui, sans-serif', padding: '1.5rem', color: '#1a1a1a' }}>
+    <div style={{ maxWidth: '680px', margin: '2rem auto', fontFamily: 'system-ui, sans-serif', padding: '1.5rem', color: '#1a1a1a' }}>
       <h1 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>🎮 Quest Log & Productivity</h1>
 
       {!token ? (
@@ -180,12 +204,14 @@ function App() {
         </div>
       ) : (
         <div>
-          {/* User Hero & XP Progress Banner */}
+          {/* User Banner & Streak Counter */}
           <div style={{ background: '#1e293b', color: '#fff', padding: '1.5rem', borderRadius: '12px', marginBottom: '1.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Welcome back, {user?.username || 'Hero'}! ⭐</h2>
-                <p style={{ margin: '0.4rem 0 0', color: '#94a3b8' }}>Level {currentLevel} Adventurer</p>
+                <p style={{ margin: '0.4rem 0 0', color: '#94a3b8' }}>
+                  Level {currentLevel} Adventurer &nbsp;|&nbsp; 🔥 Streak: {user?.streak || 0} Days
+                </p>
               </div>
               <button onClick={handleLogout} style={{ background: '#334155', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer' }}>
                 Logout
@@ -210,7 +236,7 @@ function App() {
             <form onSubmit={handleCreateTask} style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
               <input
                 type="text"
-                placeholder="Quest Title (e.g., Study Operating Systems)"
+                placeholder="Quest Title (e.g., Complete Software Engineering Lab)"
                 value={taskTitle}
                 onChange={(e) => setTaskTitle(e.target.value)}
                 style={{ padding: '0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
@@ -223,72 +249,135 @@ function App() {
                 onChange={(e) => setTaskDesc(e.target.value)}
                 style={{ padding: '0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
               />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', color: '#475569' }}>XP Reward:</label>
-                <input
-                  type="number"
-                  value={taskXp}
-                  onChange={(e) => setTaskXp(e.target.value)}
-                  style={{ padding: '0.4rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '70px' }}
-                  min="5"
-                  max="100"
-                />
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <label style={{ fontSize: '0.9rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  XP:
+                  <input
+                    type="number"
+                    value={taskXp}
+                    onChange={(e) => setTaskXp(e.target.value)}
+                    style={{ padding: '0.4rem', borderRadius: '6px', border: '1px solid #cbd5e1', width: '60px' }}
+                    min="5"
+                    max="100"
+                  />
+                </label>
+                <label style={{ fontSize: '0.9rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  Priority:
+                  <select
+                    value={taskPriority}
+                    onChange={(e) => setTaskPriority(e.target.value)}
+                    style={{ padding: '0.4rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </label>
+                <label style={{ fontSize: '0.9rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  Category:
+                  <select
+                    value={taskCategory}
+                    onChange={(e) => setTaskCategory(e.target.value)}
+                    style={{ padding: '0.4rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  >
+                    <option value="Academic">Academic</option>
+                    <option value="IT Project">IT Project</option>
+                    <option value="Personal">Personal</option>
+                  </select>
+                </label>
               </div>
-              <button type="submit" style={{ padding: '0.65rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+              <button type="submit" style={{ padding: '0.65rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '0.4rem' }}>
                 Add Quest
               </button>
             </form>
           </div>
 
-          {/* Quest List */}
-          <h3>Active Quests</h3>
-          {tasks.length === 0 ? (
-            <p style={{ color: '#64748b' }}>No active quests. Create one above to start earning XP!</p>
-          ) : (
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {tasks.map((task) => (
-                <li
-                  key={task._id}
+          {/* Quest Filter Tabs */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0 }}>Active Quests</h3>
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              {['All', 'Academic', 'IT Project', 'Personal'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setFilterCategory(cat)}
                   style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '1rem',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    marginBottom: '0.6rem',
-                    background: task.completed ? '#f8fafc' : '#fff'
+                    padding: '0.3rem 0.7rem',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: filterCategory === cat ? '#2563eb' : '#fff',
+                    color: filterCategory === cat ? '#fff' : '#475569',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
                   }}
                 >
-                  <div>
-                    <strong style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? '#94a3b8' : '#0f172a' }}>
-                      {task.title}
-                    </strong>
-                    {task.description && <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>{task.description}</p>}
-                    <span style={{ fontSize: '0.8rem', color: '#2563eb', fontWeight: 'bold' }}>+{task.xpReward} XP</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    {!task.completed ? (
-                      <button
-                        onClick={() => handleCompleteTask(task._id)}
-                        style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
-                      >
-                        Complete
-                      </button>
-                    ) : (
-                      <span style={{ color: '#16a34a', fontWeight: 'bold', fontSize: '0.9rem', marginRight: '0.5rem' }}>✓ Done</span>
-                    )}
-                    <button
-                      onClick={() => handleDeleteTask(task._id)}
-                      style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
+                  {cat}
+                </button>
               ))}
+            </div>
+          </div>
+
+          {/* Quest List */}
+          {filteredTasks.length === 0 ? (
+            <p style={{ color: '#64748b' }}>No quests found for this category.</p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {filteredTasks.map((task) => {
+                const priorityColor = task.priority === 'High' ? '#dc2626' : task.priority === 'Medium' ? '#d97706' : '#2563eb';
+                return (
+                  <li
+                    key={task._id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '1rem',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      marginBottom: '0.6rem',
+                      background: task.completed ? '#f8fafc' : '#fff'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <span style={{ fontSize: '0.75rem', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 'bold', color: '#475569' }}>
+                          {task.category}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', background: priorityColor, color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 'bold' }}>
+                          {task.priority}
+                        </span>
+                      </div>
+                      <strong style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? '#94a3b8' : '#0f172a' }}>
+                        {task.title}
+                      </strong>
+                      {task.description && <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>{task.description}</p>}
+                      <span style={{ fontSize: '0.8rem', color: '#2563eb', fontWeight: 'bold', display: 'inline-block', marginTop: '0.3rem' }}>+{task.xpReward} XP</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {!task.completed ? (
+                        <button
+                          onClick={() => handleCompleteTask(task._id)}
+                          style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
+                        >
+                          Complete
+                        </button>
+                      ) : (
+                        <span style={{ color: '#16a34a', fontWeight: 'bold', fontSize: '0.9rem', marginRight: '0.5rem' }}>✓ Done</span>
+                      )}
+                      <button
+                        onClick={() => handleDeleteTask(task._id)}
+                        style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
+
+          <HabitTracker />
         </div>
       )}
 

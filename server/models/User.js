@@ -23,6 +23,14 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 1
     },
+    streak: {
+        type: Number,
+        default: 0
+    },
+    lastCompletedDate: {
+        type: String,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now
